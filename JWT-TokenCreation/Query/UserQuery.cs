@@ -37,12 +37,32 @@ public class UserQuery
     }
     #endregion
 
-    #region getDeleteUserQuery
-    public static string GetDeleteUserQuery()
+    #region DeleteUserQuery
+    public static string DeleteUserQuery()
     {
         return @"UPDATE userLogin
         SET IsActive = @IsActive
         WHERE Id = @Id";
+    }
+    #endregion
+
+    #region createUserQuery
+    public static string CreateUserQuery()
+    {
+        return @"INSERT INTO [dbo].[userLogin] (UserName,Email,Password,IsActive)
+        VALUES (@UserName,@Email,@Password,@IsActive)";
+    }
+    #endregion
+
+    #region checkDuplicateQuery
+    public static string CheckDuplicateQuery()
+    {
+        return @"SELECT [Id]
+      ,[UserName]
+      ,[Email]
+      ,[Password]
+      ,[IsActive]
+  FROM [dbo].[userLogin] WHERE Email = @Email AND IsActive = @IsActive";
     }
     #endregion
 }

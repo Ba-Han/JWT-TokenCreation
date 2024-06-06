@@ -6,6 +6,7 @@ using JWT_TokenCreation.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using System.Data;
 using System.Data.SqlClient;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -105,13 +106,59 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpDelete]
-    [Route("api/user/{id}")]
-    public IActionResult GetLoginUser(int id)
+    [HttpPost]
+    [Route("api/create/user")]
+    public IActionResult CreateUserLogin([FromBody] CreateUserLoginRequestModel createUserLoginRequestModel)
     {
         try
         {
-            string getQuery = UserQuery.GetDeleteUserQuery();
+            //CheckDuplicateUser
+            string checkDuplicateQuery = UserQuery.CheckDuplicateQuery();
+            List<SqlParameter> checkDuplicatePara = new List<SqlParameter>()
+            {
+                new SqlParameter("@Email", createUserLoginRequestModel.Email),
+                new SqlParameter("@IsActive", true)
+            };
+
+            DataTable dt = _adoDotNetService.QueryFirstOrDefault(checkDuplicateQuery, checkDuplicatePara.ToArray());
+
+            if (dt.Rows.Count > 0)
+                return Conflict("This email is already register. Please try the different email.");
+
+            //CreateUser
+            if (createUserLoginRequestModel is null || string.IsNullOrEmpty(createUserLoginRequestModel.Email) || string.IsNullOrEmpty(createUserLoginRequestModel.Password)
+                || string.IsNullOrEmpty(createUserLoginRequestModel.UserName))
+                return BadRequest("Please fill all fiedls.");
+
+            string createQuery = UserQuery.CreateUserQuery();
+            List<SqlParameter> creatPara = new List<SqlParameter>()
+            {
+                new SqlParameter("@UserName", createUserLoginRequestModel.UserName),
+                new SqlParameter("@Email", createUserLoginRequestModel.Email),
+                new SqlParameter("@Password", createUserLoginRequestModel.Password),
+                new SqlParameter("IsActive", true)
+            };
+
+            int resCreateUser = _adoDotNetService.Execute(createQuery, creatPara.ToArray());
+            if (resCreateUser == 0)
+                return BadRequest("Creating Fail.");
+
+            return Ok("Creating Successfully.");
+
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
+    }
+
+    [HttpDelete]
+    [Route("api/user/{id}")]
+    public IActionResult DeleteLoginUser(int id)
+    {
+        try
+        {
+            string getQuery = UserQuery.DeleteUserQuery();
             List<SqlParameter> getPara = new List<SqlParameter>()
             {
                 new SqlParameter("@Id", id),
